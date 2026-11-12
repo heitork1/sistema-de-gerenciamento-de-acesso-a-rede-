@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8"><title>Login</title>
+    <style>body { font-family: Arial; display: flex; justify-content: center; padding-top: 100px; }</style>
+</head>
+<body>
+    <div style="border: 1px solid #ccc; padding: 20px; border-radius: 5px;">
+        <h2>Acesso Administrativo</h2>
+        {% with messages = get_flashed_messages() %}{% if messages %}<p style="color:red">{{ messages[0] }}</p>{% endif %}{% endwith %}
+        <form method="POST">
+            Login: <input type="text" name="login" required><br><br>
+            Senha: <input type="password" name="senha" required><br><br>
+            <button type="submit">Entrar</button>
+        </form>
+    </div>
+</body>
+</html>

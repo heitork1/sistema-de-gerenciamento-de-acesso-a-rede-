@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="refresh" content="10">
+    <title>Painel</title>
+    <style>
+        body { font-family: Arial; margin: 20px; }
+        table { border-collapse: collapse; width: 100%; margin-top: 10px; }
+        th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
+        th { background: #eee; }
+        .on { color: green; font-weight: bold; }
+        .off { color: red; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div style="display:flex; justify-content:space-between;"><h2>Controle de Acesso</h2> <a href="/logout">Sair</a></div>
+    {% with messages = get_flashed_messages() %}{% if messages %}<div style="background:#ffc107; padding:10px;">{{ messages[0] }}</div>{% endif %}{% endwith %}
+
+    <h3>Salas</h3>
+    {% for s in salas %}
+    <div style="border:1px solid #ccc; padding:10px; margin-bottom:10px;">
+        <strong>{{ s.identificacao }}</strong> 
+        <form action="/acao_imediata" method="POST" style="display:inline;">
+            <input type="hidden" name="alvo_tipo" value="sala"><input type="hidden" name="alvo_id" value="{{ s.id_sala }}">
+            <button type="submit" name="acao" value="bloquear" style="background:#dc3545; color:white;">Bloquear Sala</button>
+            <button type="submit" name="acao" value="desbloquear" style="background:#28a745; color:white;">Desbloquear Sala</button>
+        </form>
+        <form action="/agendar" method="POST" style="display:inline; margin-left: 20px;">
+            <input type="hidden" name="id_sala" value="{{ s.id_sala }}">
+            <input type="datetime-local" name="fim_em" required> <button type="submit">Agendar Bloqueio</button>
+        </form>
+    </div>
+    {% endfor %}
+
+    <h3>Computadores</h3>
+    <table>
+        <tr><th>Sala</th><th>Computador</th><th>IP</th><th>MAC</th><th>Porta</th><th>Internet</th><th>Ação Individual</th></tr>
+        {% for c in computadores %}
+        <tr>
+            <td>{{ c.sala_nome }}</td><td>{{ c.pc_nome }}</td><td>{{ c.ip }}</td><td>{{ c.mac }}</td><td>{{ c.porta_nome }}</td>
+            <td>{% if c.acesso_internet %}<span class="on">LIBERADO</span>{% else %}<span class="off">BLOQUEADO</span>{% endif %}</td>
+            <td>
+                <form action="/acao_imediata" method="POST">
+                    <input type="hidden" name="alvo_tipo" value="pc"><input type="hidden" name="alvo_id" value="{{ c.id_pc }}">
+                    {% if c.acesso_internet %}
+                        <button type="submit" name="acao" value="bloquear">Bloquear PC</button>
+                    {% else %}
+                        <button type="submit" name="acao" value="desbloquear">Desbloquear PC</button>
+                    {% endif %}
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+</body>
+</html>
