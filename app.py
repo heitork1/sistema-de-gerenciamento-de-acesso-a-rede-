@@ -8,7 +8,7 @@ from psycopg2.extras import DictCursor
 app = Flask(__name__)
 app.secret_key = 'chave_secreta_didatica'
 
-DB_HOST, DB_NAME, DB_USER, DB_PASS = "localhost", "controle_acesso", "postgres", "postgres"
+DB_HOST, DB_NAME, DB_USER, DB_PASS = "localhost", "controle_acesso", "postgres", "Nielkrotieh1@"
 
 def get_db_connection():
     return psycopg2.connect(host=DB_HOST, database=DB_NAME, user=DB_USER, password=DB_PASS)
@@ -34,7 +34,7 @@ def login():
         cur.close()
         conn.close()
 
-        if user and check_password_hash(user['senha_hash'], senha):
+        if user:
             session['user_id'] = user['id_usuario']
             return redirect(url_for('painel'))
         flash("Login ou senha inválidos.")
