@@ -1,0 +1,50 @@
+{% extends "admin_base.html" %}
+{% block titulo %}Usuários{% endblock %}
+{% block conteudo %}
+<h2>Usuários</h2>
+
+<table>
+    <tr><th>ID</th><th>Login</th><th>Nome</th><th>Perfil</th><th>Ações</th></tr>
+    {% for u in usuarios %}
+    <tr>
+        <td>{{ u.id_usuario }}</td>
+        <td>{{ u.login }}</td>
+        <td>{{ u.nome }}</td>
+        <td>{{ u.perfil }}</td>
+        <td>
+            <a href="{{ url_for('admin_usuario_edit', id=u.id_usuario) }}" class="btn btn-edit">Editar</a>
+            <form action="{{ url_for('admin_usuario_del', id=u.id_usuario) }}" method="POST" style="display:inline;"
+                  onsubmit="return confirm('Excluir o usuário {{ u.login }}?')">
+                <button type="submit" class="btn btn-del">Excluir</button>
+            </form>
+        </td>
+    </tr>
+    {% endfor %}
+</table>
+
+<div class="form-box">
+    {% if editando %}
+        <h3>Editar Usuário #{{ editando.id_usuario }}</h3>
+        <form action="{{ url_for('admin_usuario_edit', id=editando.id_usuario) }}" method="POST">
+    {% else %}
+        <h3>Adicionar Usuário</h3>
+        <form action="{{ url_for('admin_usuario_add') }}" method="POST">
+    {% endif %}
+            <label>Login:</label>
+            <input type="text" name="login" value="{{ editando.login if editando else '' }}" required><br>
+            <label>Senha:</label>
+            <input type="password" name="senha" {% if not editando %}required{% endif %} placeholder="{{ 'Deixe vazio para manter' if editando else '' }}"><br>
+            <label>Nome:</label>
+            <input type="text" name="nome" value="{{ editando.nome if editando else '' }}" required><br>
+            <label>Perfil:</label>
+            <select name="perfil">
+                <option value="professor" {% if editando and editando.perfil == 'professor' %}selected{% endif %}>Professor</option>
+                <option value="admin" {% if editando and editando.perfil == 'admin' %}selected{% endif %}>Admin</option>
+            </select><br><br>
+            <button type="submit" class="btn btn-add">{{ 'Salvar' if editando else 'Adicionar' }}</button>
+            {% if editando %}
+                <a href="{{ url_for('admin_usuarios') }}" class="btn-cancel">Cancelar</a>
+            {% endif %}
+        </form>
+</div>
+{% endblock %}

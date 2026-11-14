@@ -1,0 +1,39 @@
+{% extends "admin_base.html" %}
+{% block titulo %}Salas{% endblock %}
+{% block conteudo %}
+<h2>Salas</h2>
+
+<table>
+    <tr><th>ID</th><th>Identificação</th><th>Ações</th></tr>
+    {% for s in salas %}
+    <tr>
+        <td>{{ s.id_sala }}</td>
+        <td>{{ s.identificacao }}</td>
+        <td>
+            <a href="{{ url_for('admin_sala_edit', id=s.id_sala) }}" class="btn btn-edit">Editar</a>
+            <form action="{{ url_for('admin_sala_del', id=s.id_sala) }}" method="POST" style="display:inline;"
+                  onsubmit="return confirm('Excluir a sala {{ s.identificacao }}?')">
+                <button type="submit" class="btn btn-del">Excluir</button>
+            </form>
+        </td>
+    </tr>
+    {% endfor %}
+</table>
+
+<div class="form-box">
+    {% if editando %}
+        <h3>Editar Sala #{{ editando.id_sala }}</h3>
+        <form action="{{ url_for('admin_sala_edit', id=editando.id_sala) }}" method="POST">
+    {% else %}
+        <h3>Adicionar Sala</h3>
+        <form action="{{ url_for('admin_sala_add') }}" method="POST">
+    {% endif %}
+            <label>Identificação:</label>
+            <input type="text" name="identificacao" value="{{ editando.identificacao if editando else '' }}" required placeholder="Ex: F203"><br><br>
+            <button type="submit" class="btn btn-add">{{ 'Salvar' if editando else 'Adicionar' }}</button>
+            {% if editando %}
+                <a href="{{ url_for('admin_salas') }}" class="btn-cancel">Cancelar</a>
+            {% endif %}
+        </form>
+</div>
+{% endblock %}

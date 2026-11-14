@@ -1,0 +1,38 @@
+{% extends "admin_base.html" %}
+{% block titulo %}Painel{% endblock %}
+{% block conteudo %}
+<h2>Painel do Administrador</h2>
+
+<div class="cards">
+    <div class="card">
+        <h3>{{ t_u }}</h3>
+        <p>Usuários</p>
+    </div>
+    <div class="card">
+        <h3>{{ t_s }}</h3>
+        <p>Salas</p>
+    </div>
+    <div class="card">
+        <h3>{{ t_sw }}</h3>
+        <p>Switches</p>
+    </div>
+    <div class="card">
+        <h3>{{ t_c }}</h3>
+        <p>Computadores</p>
+    </div>
+</div>
+
+<div class="form-box">
+    <h3>Acesso Rápido</h3>
+    <p>Use o menu acima para gerenciar cada recurso do sistema.</p>
+    <ul>
+        <li><strong>Usuários</strong> – Criar, editar e remover professores e administradores.</li>
+        <li><strong>Salas</strong> – Cadastrar os laboratórios e salas de aula.</li>
+        <li><strong>Switches</strong> – Registrar os switches da rede com seus IPs e communities SNMP.</li>
+        <li><strong>Portas</strong> – Mapear as portas físicas de cada switch (índice, categoria).</li>
+        <li><strong>Computadores</strong> – Associar máquinas a salas e portas do switch.</li>
+        <li><strong>Vínculos</strong> – Definir quais usuários acessam quais salas, e quais switches atendem quais salas.</li>
+        <li><strong>Logs</strong> – Consultar o histórico de comandos SNMP enviados.</li>
+    </ul>
+</div>
+{% endblock %}

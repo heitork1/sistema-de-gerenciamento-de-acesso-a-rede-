@@ -1,0 +1,95 @@
+{% extends "admin_base.html" %}
+{% block titulo %}Vínculos{% endblock %}
+{% block conteudo %}
+<h2>Vínculos</h2>
+
+<!-- ===== USUÁRIO ↔ SALA ===== -->
+<h3>Usuário → Sala</h3>
+<p style="color:#666; font-size:13px;">Define em quais salas cada professor pode operar o bloqueio.</p>
+
+<table>
+    <tr><th>Usuário</th><th>Login</th><th>Sala</th><th>Ação</th></tr>
+    {% for v in vinculos_us %}
+    <tr>
+        <td>{{ v.usuario_nome }}</td>
+        <td>{{ v.login }}</td>
+        <td>{{ v.sala_nome }}</td>
+        <td>
+            <form action="{{ url_for('admin_vinc_us_del') }}" method="POST" style="display:inline;"
+                  onsubmit="return confirm('Remover este vínculo?')">
+                <input type="hidden" name="id_usuario" value="{{ v.id_usuario }}">
+                <input type="hidden" name="id_sala" value="{{ v.id_sala }}">
+                <button type="submit" class="btn btn-del">Remover</button>
+            </form>
+        </td>
+    </tr>
+    {% endfor %}
+</table>
+
+<div class="form-box">
+    <h3>Adicionar Vínculo Usuário → Sala</h3>
+    <form action="{{ url_for('admin_vinc_us_add') }}" method="POST">
+        <label>Usuário:</label>
+        <select name="id_usuario" required>
+            <option value="">-- Selecione --</option>
+            {% for u in usuarios %}
+            <option value="{{ u.id_usuario }}">{{ u.nome }} ({{ u.login }})</option>
+            {% endfor %}
+        </select><br>
+        <label>Sala:</label>
+        <select name="id_sala" required>
+            <option value="">-- Selecione --</option>
+            {% for s in salas %}
+            <option value="{{ s.id_sala }}">{{ s.identificacao }}</option>
+            {% endfor %}
+        </select><br><br>
+        <button type="submit" class="btn btn-add">Adicionar</button>
+    </form>
+</div>
+
+<hr style="margin: 30px 0;">
+
+<!-- ===== SALA ↔ SWITCH ===== -->
+<h3>Sala → Switch</h3>
+<p style="color:#666; font-size:13px;">Define quais switches atendem cada sala.</p>
+
+<table>
+    <tr><th>Sala</th><th>Switch IP</th><th>Switch Descrição</th><th>Ação</th></tr>
+    {% for v in vinculos_ss %}
+    <tr>
+        <td>{{ v.sala_nome }}</td>
+        <td>{{ v.ip }}</td>
+        <td>{{ v.switch_desc }}</td>
+        <td>
+            <form action="{{ url_for('admin_vinc_ss_del') }}" method="POST" style="display:inline;"
+                  onsubmit="return confirm('Remover este vínculo?')">
+                <input type="hidden" name="id_sala" value="{{ v.id_sala }}">
+                <input type="hidden" name="id_switch" value="{{ v.id_switch }}">
+                <button type="submit" class="btn btn-del">Remover</button>
+            </form>
+        </td>
+    </tr>
+    {% endfor %}
+</table>
+
+<div class="form-box">
+    <h3>Adicionar Vínculo Sala → Switch</h3>
+    <form action="{{ url_for('admin_vinc_ss_add') }}" method="POST">
+        <label>Sala:</label>
+        <select name="id_sala" required>
+            <option value="">-- Selecione --</option>
+            {% for s in salas %}
+            <option value="{{ s.id_sala }}">{{ s.identificacao }}</option>
+            {% endfor %}
+        </select><br>
+        <label>Switch:</label>
+        <select name="id_switch" required>
+            <option value="">-- Selecione --</option>
+            {% for sw in switches %}
+            <option value="{{ sw.id_switch }}">{{ sw.ip }} - {{ sw.descricao }}</option>
+            {% endfor %}
+        </select><br><br>
+        <button type="submit" class="btn btn-add">Adicionar</button>
+    </form>
+</div>
+{% endblock %}

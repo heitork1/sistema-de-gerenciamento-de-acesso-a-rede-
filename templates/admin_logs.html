@@ -1,0 +1,35 @@
+{% extends "admin_base.html" %}
+{% block titulo %}Logs SNMP{% endblock %}
+{% block conteudo %}
+<h2>Logs SNMP (últimos 100)</h2>
+
+<table>
+    <tr>
+        <th>Data/Hora</th>
+        <th>Porta</th>
+        <th>Switch</th>
+        <th>Ação</th>
+        <th>OID</th>
+        <th>Valor</th>
+        <th>Resultado</th>
+        <th>Mensagem</th>
+    </tr>
+    {% for l in logs %}
+    <tr>
+        <td>{{ l.executado_em.strftime('%d/%m/%Y %H:%M:%S') }}</td>
+        <td>{{ l.porta_nome }}</td>
+        <td>{{ l.switch_ip }}</td>
+        <td>{{ l.acao }}</td>
+        <td style="font-size:12px;">{{ l.oid }}</td>
+        <td>{{ l.valor }} ({{ 'UP' if l.valor == 1 else 'DOWN' }})</td>
+        <td style="color: {{ 'green' if l.sucesso else 'red' }}; font-weight:bold;">
+            {{ 'SUCESSO' if l.sucesso else 'FALHA' }}
+        </td>
+        <td style="font-size:12px;">{{ l.mensagem[:80] if l.mensagem else '' }}</td>
+    </tr>
+    {% endfor %}
+    {% if not logs %}
+    <tr><td colspan="8" style="text-align:center; color:#999;">Nenhum log encontrado.</td></tr>
+    {% endif %}
+</table>
+{% endblock %}

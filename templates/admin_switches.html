@@ -1,0 +1,45 @@
+{% extends "admin_base.html" %}
+{% block titulo %}Switches{% endblock %}
+{% block conteudo %}
+<h2>Switches</h2>
+
+<table>
+    <tr><th>ID</th><th>IP</th><th>Descrição</th><th>Community RW</th><th>Ações</th></tr>
+    {% for sw in switches %}
+    <tr>
+        <td>{{ sw.id_switch }}</td>
+        <td>{{ sw.ip }}</td>
+        <td>{{ sw.descricao }}</td>
+        <td>{{ sw.snmp_community_rw }}</td>
+        <td>
+            <a href="{{ url_for('admin_switch_edit', id=sw.id_switch) }}" class="btn btn-edit">Editar</a>
+            <form action="{{ url_for('admin_switch_del', id=sw.id_switch) }}" method="POST" style="display:inline;"
+                  onsubmit="return confirm('Excluir este switch?')">
+                <button type="submit" class="btn btn-del">Excluir</button>
+            </form>
+        </td>
+    </tr>
+    {% endfor %}
+</table>
+
+<div class="form-box">
+    {% if editando %}
+        <h3>Editar Switch #{{ editando.id_switch }}</h3>
+        <form action="{{ url_for('admin_switch_edit', id=editando.id_switch) }}" method="POST">
+    {% else %}
+        <h3>Adicionar Switch</h3>
+        <form action="{{ url_for('admin_switch_add') }}" method="POST">
+    {% endif %}
+            <label>IP:</label>
+            <input type="text" name="ip" value="{{ editando.ip if editando else '' }}" required placeholder="Ex: 192.168.1.1"><br>
+            <label>Descrição:</label>
+            <input type="text" name="descricao" value="{{ editando.descricao if editando else '' }}" placeholder="Ex: Switch Lab F203"><br>
+            <label>Community RW:</label>
+            <input type="text" name="snmp_community_rw" value="{{ editando.snmp_community_rw if editando else '' }}" required placeholder="Ex: private"><br><br>
+            <button type="submit" class="btn btn-add">{{ 'Salvar' if editando else 'Adicionar' }}</button>
+            {% if editando %}
+                <a href="{{ url_for('admin_switches') }}" class="btn-cancel">Cancelar</a>
+            {% endif %}
+        </form>
+</div>
+{% endblock %}

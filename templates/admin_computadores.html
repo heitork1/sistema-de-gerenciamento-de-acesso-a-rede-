@@ -1,0 +1,68 @@
+{% extends "admin_base.html" %}
+{% block titulo %}Computadores{% endblock %}
+{% block conteudo %}
+<h2>Computadores</h2>
+
+<table>
+    <tr><th>ID</th><th>Nome</th><th>IP</th><th>MAC</th><th>Sala</th><th>Porta</th><th>Internet</th><th>Ações</th></tr>
+    {% for c in computadores %}
+    <tr>
+        <td>{{ c.id_pc }}</td>
+        <td>{{ c.nome }}</td>
+        <td>{{ c.ip }}</td>
+        <td>{{ c.mac }}</td>
+        <td>{{ c.sala_nome }}</td>
+        <td>{{ c.porta_nome }}</td>
+        <td style="color: {{ 'green' if c.acesso_internet else 'red' }}; font-weight:bold;">
+            {{ 'LIBERADO' if c.acesso_internet else 'BLOQUEADO' }}
+        </td>
+        <td>
+            <a href="{{ url_for('admin_computador_edit', id=c.id_pc) }}" class="btn btn-edit">Editar</a>
+            <form action="{{ url_for('admin_computador_del', id=c.id_pc) }}" method="POST" style="display:inline;"
+                  onsubmit="return confirm('Excluir o computador {{ c.nome }}?')">
+                <button type="submit" class="btn btn-del">Excluir</button>
+            </form>
+        </td>
+    </tr>
+    {% endfor %}
+</table>
+
+<div class="form-box">
+    {% if editando %}
+        <h3>Editar Computador #{{ editando.id_pc }}</h3>
+        <form action="{{ url_for('admin_computador_edit', id=editando.id_pc) }}" method="POST">
+    {% else %}
+        <h3>Adicionar Computador</h3>
+        <form action="{{ url_for('admin_computador_add') }}" method="POST">
+    {% endif %}
+            <label>Nome:</label>
+            <input type="text" name="nome" value="{{ editando.nome if editando else '' }}" required placeholder="Ex: PC-Aluno-01"><br>
+            <label>IP:</label>
+            <input type="text" name="ip" value="{{ editando.ip if editando else '' }}" required placeholder="Ex: 192.168.1.11"><br>
+            <label>MAC:</label>
+            <input type="text" name="mac" value="{{ editando.mac if editando else '' }}" required placeholder="Ex: AA:BB:CC:DD:EE:01"><br>
+            <label>Sala:</label>
+            <select name="id_sala" required>
+                <option value="">-- Selecione --</option>
+                {% for s in salas %}
+                <option value="{{ s.id_sala }}" {% if editando and editando.id_sala == s.id_sala %}selected{% endif %}>
+                    {{ s.identificacao }}
+                </option>
+                {% endfor %}
+            </select><br>
+            <label>Porta:</label>
+            <select name="id_porta" required>
+                <option value="">-- Selecione --</option>
+                {% for p in portas_livres %}
+                <option value="{{ p.id_porta }}" {% if editando and editando.id_porta == p.id_porta %}selected{% endif %}>
+                    {{ p.nome }} (Switch: {{ p.switch_ip }})
+                </option>
+                {% endfor %}
+            </select><br><br>
+            <button type="submit" class="btn btn-add">{{ 'Salvar' if editando else 'Adicionar' }}</button>
+            {% if editando %}
+                <a href="{{ url_for('admin_computadores') }}" class="btn-cancel">Cancelar</a>
+            {% endif %}
+        </form>
+</div>
+{% endblock %}

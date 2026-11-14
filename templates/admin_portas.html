@@ -1,0 +1,61 @@
+{% extends "admin_base.html" %}
+{% block titulo %}Portas{% endblock %}
+{% block conteudo %}
+<h2>Portas</h2>
+
+<table>
+    <tr><th>ID</th><th>Switch</th><th>ifIndex</th><th>Nome</th><th>Categoria</th><th>Bloqueável</th><th>Ações</th></tr>
+    {% for p in portas %}
+    <tr>
+        <td>{{ p.id_porta }}</td>
+        <td>{{ p.switch_ip }} ({{ p.switch_desc }})</td>
+        <td>{{ p.if_index }}</td>
+        <td>{{ p.nome }}</td>
+        <td>{{ p.categoria }}</td>
+        <td>{{ 'Sim' if p.bloqueavel else 'Não' }}</td>
+        <td>
+            <a href="{{ url_for('admin_porta_edit', id=p.id_porta) }}" class="btn btn-edit">Editar</a>
+            <form action="{{ url_for('admin_porta_del', id=p.id_porta) }}" method="POST" style="display:inline;"
+                  onsubmit="return confirm('Excluir a porta {{ p.nome }}?')">
+                <button type="submit" class="btn btn-del">Excluir</button>
+            </form>
+        </td>
+    </tr>
+    {% endfor %}
+</table>
+
+<div class="form-box">
+    {% if editando %}
+        <h3>Editar Porta #{{ editando.id_porta }}</h3>
+        <form action="{{ url_for('admin_porta_edit', id=editando.id_porta) }}" method="POST">
+    {% else %}
+        <h3>Adicionar Porta</h3>
+        <form action="{{ url_for('admin_porta_add') }}" method="POST">
+    {% endif %}
+            <label>Switch:</label>
+            <select name="id_switch" required>
+                <option value="">-- Selecione --</option>
+                {% for sw in switches %}
+                <option value="{{ sw.id_switch }}" {% if editando and editando.id_switch == sw.id_switch %}selected{% endif %}>
+                    {{ sw.ip }} - {{ sw.descricao }}
+                </option>
+                {% endfor %}
+            </select><br>
+            <label>ifIndex:</label>
+            <input type="number" name="if_index" value="{{ editando.if_index if editando else '' }}" required placeholder="Índice MIB-II"><br>
+            <label>Nome:</label>
+            <input type="text" name="nome" value="{{ editando.nome if editando else '' }}" placeholder="Ex: Fa0/5"><br>
+            <label>Categoria:</label>
+            <select name="categoria" required>
+                <option value="aluno" {% if editando and editando.categoria == 'aluno' %}selected{% endif %}>Aluno (bloqueável)</option>
+                <option value="professor" {% if editando and editando.categoria == 'professor' %}selected{% endif %}>Professor</option>
+                <option value="uplink" {% if editando and editando.categoria == 'uplink' %}selected{% endif %}>Uplink</option>
+                <option value="datacenter" {% if editando and editando.categoria == 'datacenter' %}selected{% endif %}>Datacenter</option>
+            </select><br><br>
+            <button type="submit" class="btn btn-add">{{ 'Salvar' if editando else 'Adicionar' }}</button>
+            {% if editando %}
+                <a href="{{ url_for('admin_portas') }}" class="btn-cancel">Cancelar</a>
+            {% endif %}
+        </form>
+</div>
+{% endblock %}

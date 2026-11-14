@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Admin - {% block titulo %}{% endblock %}</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #f5f5f5; }
+        nav { background: #343a40; padding: 10px 20px; display: flex; gap: 15px; align-items: center; flex-wrap: wrap; }
+        nav a { color: #ccc; text-decoration: none; font-size: 14px; }
+        nav a:hover, nav a.ativo { color: #fff; }
+        nav .titulo { color: #fff; font-weight: bold; font-size: 16px; margin-right: 20px; }
+        .container { max-width: 1100px; margin: 20px auto; padding: 0 20px; }
+        h2 { color: #333; border-bottom: 2px solid #007bff; padding-bottom: 5px; }
+        table { border-collapse: collapse; width: 100%; margin: 15px 0; background: #fff; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 14px; }
+        th { background: #007bff; color: white; }
+        tr:nth-child(even) { background: #f9f9f9; }
+        .form-box { background: #fff; border: 1px solid #ddd; padding: 15px; margin: 15px 0; }
+        .form-box h3 { margin-top: 0; color: #555; }
+        label { display: inline-block; width: 130px; font-weight: bold; font-size: 14px; margin-bottom: 5px; }
+        input[type="text"], input[type="password"], input[type="number"], select {
+            padding: 6px 10px; border: 1px solid #ccc; border-radius: 3px; width: 250px; margin-bottom: 8px;
+        }
+        .btn { padding: 6px 14px; border: none; border-radius: 3px; cursor: pointer; font-size: 13px; color: white; }
+        .btn-add { background: #28a745; }
+        .btn-edit { background: #ffc107; color: #333; }
+        .btn-del { background: #dc3545; }
+        .btn-cancel { background: #6c757d; text-decoration: none; padding: 6px 14px; border-radius: 3px; color: white; font-size: 13px; }
+        .alerta { padding: 10px; margin: 10px 0; border-radius: 4px; font-weight: bold; }
+        .alerta-success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .alerta-danger { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .alerta-warning { background: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
+        .cards { display: flex; gap: 15px; flex-wrap: wrap; margin: 20px 0; }
+        .card { background: #fff; border: 1px solid #ddd; border-radius: 5px; padding: 20px; text-align: center; min-width: 150px; flex: 1; }
+        .card h3 { margin: 0; font-size: 32px; color: #007bff; }
+        .card p { margin: 5px 0 0; color: #666; }
+    </style>
+</head>
+<body>
+    <nav>
+        <span class="titulo">⚙ Administração</span>
+        <a href="{{ url_for('admin_painel') }}">Início</a>
+        <a href="{{ url_for('admin_usuarios') }}">Usuários</a>
+        <a href="{{ url_for('admin_salas') }}">Salas</a>
+        <a href="{{ url_for('admin_switches') }}">Switches</a>
+        <a href="{{ url_for('admin_portas') }}">Portas</a>
+        <a href="{{ url_for('admin_computadores') }}">Computadores</a>
+        <a href="{{ url_for('admin_vinculos') }}">Vínculos</a>
+        <a href="{{ url_for('admin_logs') }}">Logs</a>
+        <span style="flex-grow:1"></span>
+        <a href="{{ url_for('painel') }}">Painel de Controle</a>
+        <a href="{{ url_for('logout') }}">Sair</a>
+    </nav>
+    <div class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% for cat, msg in messages %}
+                <div class="alerta alerta-{{ cat }}">{{ msg }}</div>
+            {% endfor %}
+        {% endwith %}
+        {% block conteudo %}{% endblock %}
+    </div>
+</body>
+</html>
