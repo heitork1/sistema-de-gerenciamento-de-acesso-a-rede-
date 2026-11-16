@@ -2,7 +2,6 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta http-equiv="refresh" content="10">
     <title>Painel</title>
     <style>
         body { font-family: Arial; margin: 20px; }
@@ -11,6 +10,10 @@
         th { background: #eee; }
         .on { color: green; font-weight: bold; }
         .off { color: red; font-weight: bold; }
+        .alerta { padding: 10px; margin-bottom: 10px; border-radius: 4px; font-weight: bold; }
+        .alerta-danger, .alerta-error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .alerta-success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .alerta-warning { background: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
     </style>
 </head>
 <body>
@@ -24,10 +27,7 @@
     {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
             {% for category, message in messages %}
-                <div style="padding:10px; margin-bottom:10px; border-radius:4px; font-weight:bold;
-                    {% if category == 'danger' or category == 'error' %}background:#f8d7da; color:#721c24; border:1px solid #f5c6cb;
-                    {% elif category == 'success' %}background:#d4edda; color:#155724; border:1px solid #c3e6cb;
-                    {% else %}background:#fff3cd; color:#856404; border:1px solid #ffeeba;{% endif %}">
+                <div class="alerta alerta-{{ category if category in ['danger', 'error', 'success', 'warning'] else 'warning' }}">
                     {{ message }}
                 </div>
             {% endfor %}
@@ -36,39 +36,123 @@
 
     <h3>Salas</h3>
     {% for s in salas %}
-    <div style="border:1px solid #ccc; padding:10px; margin-bottom:10px;">
-        <strong>{{ s.identificacao }}</strong> 
-        <form action="/acao_imediata" method="POST" style="display:inline;">
-            <input type="hidden" name="alvo_tipo" value="sala"><input type="hidden" name="alvo_id" value="{{ s.id_sala }}">
-            <button type="submit" name="acao" value="bloquear" style="background:#dc3545; color:white;">Bloquear Sala</button>
-            <button type="submit" name="acao" value="desbloquear" style="background:#28a745; color:white;">Desbloquear Sala</button>
-        </form>
-        <form action="/agendar" method="POST" style="display:inline; margin-left: 20px;">
-            <input type="hidden" name="id_sala" value="{{ s.id_sala }}">
-            <input type="datetime-local" name="fim_em" required> <button type="submit">Agendar Bloqueio</button>
-        </form>
+    <div style="border:1px solid #ccc; padding:12px; margin-bottom:12px; border-radius:4px; background:#fff;">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+            <div>
+                <strong style="font-size:16px;">Sala {{ s.identificacao }}</strong>
+                <span style="margin-left:15px;">Ação Imediata:</span>
+                <form action="/acao_imediata" method="POST" style="display:inline; margin-left:5px;">
+                    <input type="hidden" name="alvo_tipo" value="sala"><input type="hidden" name="alvo_id" value="{{ s.id_sala }}">
+                    <button type="submit" name="acao" value="bloquear" style="background:#dc3545; color:white; border:none; padding:5px 10px; border-radius:3px; cursor:pointer;">Bloquear Sala</button>
+                    <button type="submit" name="acao" value="desbloquear" style="background:#28a745; color:white; border:none; padding:5px 10px; border-radius:3px; cursor:pointer;">Desbloquear Sala</button>
+                </form>
+            </div>
+            
+            <details style="display:inline-block;">
+                <summary style="cursor:pointer; color:#007bff; font-weight:bold; font-size:13px;">⏰ Agendar Bloqueio da Sala</summary>
+                <form action="/agendar" method="POST" style="margin-top:8px; padding:10px; background:#f8f9fa; border:1px solid #ddd; border-radius:4px; font-size:13px;">
+                    <input type="hidden" name="alvo_tipo" value="sala">
+                    <input type="hidden" name="alvo_id" value="{{ s.id_sala }}">
+                    <div style="margin-bottom:6px;">
+                        <label><strong>Início (Bloqueio):</strong></label><br>
+                        <input type="datetime-local" name="inicio_em">
+                        <small style="color:#666;">(deixe vazio para bloquear agora)</small>
+                    </div>
+                    <div style="margin-bottom:8px;">
+                        <label><strong style="color:#dc3545;">* Fim (Desbloqueio obrigatório):</strong></label><br>
+                        <input type="datetime-local" name="fim_em" required>
+                    </div>
+                    <button type="submit" style="background:#007bff; color:white; border:none; padding:5px 12px; border-radius:3px; cursor:pointer; font-weight:bold;">Confirmar Agendamento</button>
+                </form>
+            </details>
+        </div>
     </div>
     {% endfor %}
 
-    <h3>Computadores</h3>
+    {% if agendamentos %}
+    <h3>Agendamentos em Andamento / Programados</h3>
     <table>
-        <tr><th>Sala</th><th>Computador</th><th>IP</th><th>MAC</th><th>Porta</th><th>Internet</th><th>Ação Individual</th></tr>
-        {% for c in computadores %}
         <tr>
-            <td>{{ c.sala_nome }}</td><td>{{ c.pc_nome }}</td><td>{{ c.ip }}</td><td>{{ c.mac }}</td><td>{{ c.porta_nome }}</td>
-            <td>{% if c.acesso_internet %}<span class="on">LIBERADO</span>{% else %}<span class="off">BLOQUEADO</span>{% endif %}</td>
+            <th>ID</th>
+            <th>Sala</th>
+            <th>Alvo</th>
+            <th>Início (Bloqueio)</th>
+            <th>Fim (Desbloqueio)</th>
+            <th>Status</th>
+            <th>Ação</th>
+        </tr>
+        {% for a in agendamentos %}
+        <tr>
+            <td>#{{ a.id_agendamento }}</td>
+            <td>{{ a.sala_nome }}</td>
+            <td>{{ 'Sala Inteira' if a.sala_inteira else a.pcs_afetados }}</td>
+            <td>{{ a.inicio_em.strftime('%d/%m/%Y %H:%M') }}</td>
+            <td>{{ a.fim_em.strftime('%d/%m/%Y %H:%M') }}</td>
             <td>
-                <form action="/acao_imediata" method="POST">
-                    <input type="hidden" name="alvo_tipo" value="pc"><input type="hidden" name="alvo_id" value="{{ c.id_pc }}">
-                    {% if c.acesso_internet %}
-                        <button type="submit" name="acao" value="bloquear">Bloquear PC</button>
-                    {% else %}
-                        <button type="submit" name="acao" value="desbloquear">Desbloquear PC</button>
-                    {% endif %}
+                {% if a.status == 'ativo' %}
+                    <span class="off">ATIVO (Bloqueado)</span>
+                {% else %}
+                    <span style="color:#856404; font-weight:bold;">AGENDADO (Pendente)</span>
+                {% endif %}
+            </td>
+            <td>
+                <form action="/agendar/cancelar/{{ a.id_agendamento }}" method="POST" onsubmit="return confirm('Deseja realmente cancelar este agendamento?');" style="display:inline;">
+                    <button type="submit" style="background:#6c757d; color:white; border:none; padding:4px 8px; border-radius:3px; cursor:pointer; font-size:12px;">Cancelar</button>
                 </form>
             </td>
         </tr>
         {% endfor %}
     </table>
+    {% endif %}
+
+    <h3>Computadores</h3>
+    <table>
+        <tr><th>Sala</th><th>Computador</th><th>IP</th><th>MAC</th><th>Porta</th><th>Internet</th><th>Ações</th></tr>
+        {% for c in computadores %}
+        <tr>
+            <td>{{ c.sala_nome }}</td><td>{{ c.pc_nome }}</td><td>{{ c.ip }}</td><td>{{ c.mac }}</td><td>{{ c.porta_nome }}</td>
+            <td>{% if c.acesso_internet %}<span class="on">LIBERADO</span>{% else %}<span class="off">BLOQUEADO</span>{% endif %}</td>
+            <td>
+                <form action="/acao_imediata" method="POST" style="display:inline;">
+                    <input type="hidden" name="alvo_tipo" value="pc"><input type="hidden" name="alvo_id" value="{{ c.id_pc }}">
+                    {% if c.acesso_internet %}
+                        <button type="submit" name="acao" value="bloquear" style="background:#dc3545; color:white; border:none; padding:4px 8px; border-radius:3px; cursor:pointer;">Bloquear PC</button>
+                    {% else %}
+                        <button type="submit" name="acao" value="desbloquear" style="background:#28a745; color:white; border:none; padding:4px 8px; border-radius:3px; cursor:pointer;">Desbloquear PC</button>
+                    {% endif %}
+                </form>
+
+                <details style="margin-top:6px; text-align:left;">
+                    <summary style="cursor:pointer; color:#007bff; font-size:12px;">⏰ Agendar este PC</summary>
+                    <form action="/agendar" method="POST" style="margin-top:6px; padding:8px; background:#f9f9f9; border:1px solid #ddd; border-radius:3px; font-size:12px;">
+                        <input type="hidden" name="alvo_tipo" value="pc">
+                        <input type="hidden" name="alvo_id" value="{{ c.id_pc }}">
+                        <div style="margin-bottom:4px;">
+                            <label>Início (Bloqueio):</label><br>
+                            <input type="datetime-local" name="inicio_em" style="font-size:11px; width:160px;"><br>
+                            <small style="color:#666;">(vazio = agora)</small>
+                        </div>
+                        <div style="margin-bottom:6px;">
+                            <label><strong style="color:#dc3545;">* Fim (Desbloqueio):</strong></label><br>
+                            <input type="datetime-local" name="fim_em" required style="font-size:11px; width:160px;">
+                        </div>
+                        <button type="submit" style="background:#007bff; color:white; border:none; padding:3px 8px; font-size:11px; border-radius:3px; cursor:pointer;">Agendar PC</button>
+                    </form>
+                </details>
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+
+    <script>
+        // Auto-refresh a cada 10 segundos, mas sem interromper o usuário se ele estiver agendando
+        setInterval(function() {
+            const menuAberto = document.querySelector('details[open]');
+            const interagindo = ['INPUT', 'SELECT', 'BUTTON', 'TEXTAREA'].includes(document.activeElement.tagName);
+            if (!menuAberto && !interagindo) {
+                window.location.reload();
+            }
+        }, 10000);
+    </script>
 </body>
 </html>

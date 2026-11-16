@@ -70,10 +70,19 @@ def painel():
                    JOIN sala s ON c.id_sala = s.id_sala
                    WHERE c.id_sala IN %s ORDER BY c.id_pc''', (salas_ids,))
     computadores = cur.fetchall()
+
+    cur.execute('''SELECT a.id_agendamento, a.sala_inteira, a.inicio_em, a.fim_em, a.status, s.identificacao as sala_nome,
+                          (SELECT STRING_AGG(c.nome, ', ') FROM agendamento_alvo aa JOIN computador c ON aa.id_pc = c.id_pc WHERE aa.id_agendamento = a.id_agendamento) as pcs_afetados
+                   FROM agendamento a
+                   JOIN sala s ON a.id_sala = s.id_sala
+                   WHERE a.id_sala IN %s AND a.status IN ('agendado', 'ativo')
+                   ORDER BY a.inicio_em''', (salas_ids,))
+    agendamentos = cur.fetchall()
+
     cur.close()
     conn.close()
 
-    return render_template('painel.html', salas=salas, computadores=computadores)
+    return render_template('painel.html', salas=salas, computadores=computadores, agendamentos=agendamentos)
 
 @app.route('/acao_imediata', methods=['POST'])
 def acao_imediata():
@@ -138,23 +147,109 @@ def acao_imediata():
 def agendar():
     if 'user_id' not in session: return redirect(url_for('login'))
 
-    id_sala, fim_em = request.form['id_sala'], request.form['fim_em']
-    conn = get_db_connection()
-    cur = conn.cursor()
-    
-    cur.execute('''INSERT INTO agendamento (id_usuario, id_sala, sala_inteira, fim_em, status)
-                   VALUES (%s, %s, TRUE, %s, 'agendado') RETURNING id_agendamento''', 
-                (session['user_id'], id_sala, fim_em))
-    id_agendamento = cur.fetchone()[0]
+    alvo_tipo = request.form.get('alvo_tipo', 'sala')
+    alvo_id = request.form.get('alvo_id') or request.form.get('id_sala')
+    inicio_em = request.form.get('inicio_em') or None
+    fim_em = request.form.get('fim_em')
 
-    cur.execute('''INSERT INTO agendamento_alvo (id_agendamento, id_pc)
-                   SELECT %s, id_pc FROM computador c
-                   JOIN porta p ON c.id_porta = p.id_porta 
-                   WHERE c.id_sala = %s AND p.bloqueavel = TRUE''', (id_agendamento, id_sala))
-    conn.commit()
-    cur.close()
-    conn.close()
-    flash("Bloqueio agendado. O sistema agendador aplicará a restrição automaticamente.", "success")
+    if not fim_em:
+        flash("O horário de desbloqueio (término) é obrigatório.", "warning")
+        return redirect(url_for('painel'))
+
+    conn = get_db_connection()
+    cur = conn.cursor(cursor_factory=DictCursor)
+    try:
+        if alvo_tipo == 'pc':
+            cur.execute('''SELECT c.id_pc, c.nome, c.id_sala, p.bloqueavel 
+                           FROM computador c JOIN porta p ON c.id_porta = p.id_porta 
+                           WHERE c.id_pc = %s''', (alvo_id,))
+            pc = cur.fetchone()
+            if not pc:
+                flash("Computador não encontrado.", "danger")
+                return redirect(url_for('painel'))
+            if not pc['bloqueavel']:
+                flash("Este computador está em uma porta protegida e não pode ser bloqueado.", "danger")
+                return redirect(url_for('painel'))
+            id_sala = pc['id_sala']
+            sala_inteira = False
+        else:
+            id_sala = alvo_id
+            sala_inteira = True
+
+        if inicio_em:
+            cur.execute('''INSERT INTO agendamento (id_usuario, id_sala, sala_inteira, inicio_em, fim_em, status)
+                           VALUES (%s, %s, %s, %s, %s, 'agendado') RETURNING id_agendamento''', 
+                        (session['user_id'], id_sala, sala_inteira, inicio_em, fim_em))
+        else:
+            cur.execute('''INSERT INTO agendamento (id_usuario, id_sala, sala_inteira, fim_em, status)
+                           VALUES (%s, %s, %s, %s, 'agendado') RETURNING id_agendamento''', 
+                        (session['user_id'], id_sala, sala_inteira, fim_em))
+        
+        id_agendamento = cur.fetchone()['id_agendamento']
+
+        if sala_inteira:
+            cur.execute('''INSERT INTO agendamento_alvo (id_agendamento, id_pc)
+                           SELECT %s, id_pc FROM computador c
+                           JOIN porta p ON c.id_porta = p.id_porta 
+                           WHERE c.id_sala = %s AND p.bloqueavel = TRUE''', (id_agendamento, id_sala))
+        else:
+            cur.execute('''INSERT INTO agendamento_alvo (id_agendamento, id_pc)
+                           VALUES (%s, %s)''', (id_agendamento, alvo_id))
+
+        conn.commit()
+        alvo_nome = "a sala inteira" if sala_inteira else f"o computador {pc['nome']}"
+        flash(f"Bloqueio agendado para {alvo_nome}. O sistema aplicará o bloqueio e o desbloqueio automaticamente.", "success")
+    except psycopg2.errors.CheckViolation:
+        conn.rollback()
+        flash("O horário de desbloqueio deve ser posterior ao horário de início do bloqueio.", "danger")
+    except Exception as e:
+        conn.rollback()
+        flash(f"Erro ao agendar: {e}", "danger")
+    finally:
+        cur.close()
+        conn.close()
+
+    return redirect(url_for('painel'))
+
+@app.route('/agendar/cancelar/<int:id_agendamento>', methods=['POST'])
+def cancelar_agendamento(id_agendamento):
+    if 'user_id' not in session: return redirect(url_for('login'))
+
+    conn = get_db_connection()
+    cur = conn.cursor(cursor_factory=DictCursor)
+    try:
+        cur.execute("SELECT * FROM agendamento WHERE id_agendamento = %s", (id_agendamento,))
+        ag = cur.fetchone()
+        if not ag:
+            flash("Agendamento não encontrado.", "danger")
+            return redirect(url_for('painel'))
+
+        # Se já estava ativo (bloqueado), desbloqueia os computadores via SNMP
+        if ag['status'] == 'ativo':
+            cur.execute('''SELECT c.id_pc, p.if_index, sw.ip, sw.snmp_community_rw, p.id_porta 
+                           FROM agendamento_alvo aa JOIN computador c ON aa.id_pc = c.id_pc
+                           JOIN porta p ON c.id_porta = p.id_porta JOIN switch sw ON p.id_switch = sw.id_switch
+                           WHERE aa.id_agendamento = %s''', (id_agendamento,))
+            alvos = cur.fetchall()
+            for alvo in alvos:
+                sucesso, msg = executar_snmp(alvo['ip'], alvo['snmp_community_rw'], alvo['if_index'], 1)
+                oid = f"1.3.6.1.2.1.2.2.1.7.{alvo['if_index']}"
+                cur.execute('''INSERT INTO log_snmp (id_agendamento, id_porta, acao, oid, valor, sucesso, mensagem)
+                               VALUES (%s, %s, 'desbloquear', %s, 1, %s, %s)''',
+                            (id_agendamento, alvo['id_porta'], oid, sucesso, msg))
+                if sucesso:
+                    cur.execute("UPDATE computador SET acesso_internet = TRUE, atualizado_em = NOW() WHERE id_pc = %s", (alvo['id_pc'],))
+
+        cur.execute("UPDATE agendamento SET status = 'cancelado' WHERE id_agendamento = %s", (id_agendamento,))
+        conn.commit()
+        flash("Agendamento cancelado com sucesso. (As portas foram liberadas se já estavam bloqueadas).", "success")
+    except Exception as e:
+        conn.rollback()
+        flash(f"Erro ao cancelar agendamento: {e}", "danger")
+    finally:
+        cur.close()
+        conn.close()
+
     return redirect(url_for('painel'))
 
 # ==========================================
