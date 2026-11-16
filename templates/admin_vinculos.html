@@ -4,11 +4,11 @@
 <h2>Vínculos</h2>
 
 <!-- ===== USUÁRIO ↔ SALA ===== -->
-<h3>Usuário → Sala</h3>
+<h3>Professor → Sala</h3>
 <p style="color:#666; font-size:13px;">Define em quais salas cada professor pode operar o bloqueio.</p>
 
 <table>
-    <tr><th>Usuário</th><th>Login</th><th>Sala</th><th>Ação</th></tr>
+    <tr><th>Professor</th><th>Login</th><th>Sala</th><th>Ação</th></tr>
     {% for v in vinculos_us %}
     <tr>
         <td>{{ v.usuario_nome }}</td>
@@ -27,9 +27,9 @@
 </table>
 
 <div class="form-box">
-    <h3>Adicionar Vínculo Usuário → Sala</h3>
+    <h3>Adicionar Vínculo Professor → Sala</h3>
     <form action="{{ url_for('admin_vinc_us_add') }}" method="POST">
-        <label>Usuário:</label>
+        <label>Professor:</label>
         <select name="id_usuario" required>
             <option value="">-- Selecione --</option>
             {% for u in usuarios %}

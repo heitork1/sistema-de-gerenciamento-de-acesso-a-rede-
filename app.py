@@ -25,26 +25,129 @@ def executar_snmp(ip, community, if_index, acao):
     except Exception as e:
         return False, str(e)
 
-@app.route('/', methods=['GET', 'POST'])
-def login():
-    if request.method == 'POST':
-        login = request.form['login']
-        senha = request.form['senha']
+def obter_mac_cliente(ip):
+    """Detecta o endereço MAC do cliente a partir do IP da requisição."""
+    # Permite passar cabeçalho ou parâmetro de teste didático (ex: ?test_mac=00:11:22:33:44:55)
+    mac_teste = request.headers.get('X-Client-MAC') or request.args.get('test_mac')
+    if mac_teste:
+        return mac_teste.strip().lower()
+
+    # 1. Se for localhost (navegador rodando na mesma máquina do servidor)
+    if ip in ('127.0.0.1', '::1', 'localhost'):
+        if os.path.exists('/sys/class/net'):
+            for iface in sorted(os.listdir('/sys/class/net')):
+                if iface != 'lo':
+                    addr_path = f'/sys/class/net/{iface}/address'
+                    if os.path.isfile(addr_path):
+                        try:
+                            with open(addr_path, 'r') as f:
+                                mac = f.read().strip().lower()
+                                if mac and mac != '00:00:00:00:00:00':
+                                    return mac
+                        except Exception:
+                            pass
+
+    # 2. Consulta a tabela ARP do kernel Linux (/proc/net/arp)
+    try:
+        with open('/proc/net/arp', 'r') as f:
+            for linha in f.readlines()[1:]:
+                partes = linha.split()
+                if len(partes) >= 4 and partes[0] == ip:
+                    mac = partes[3].strip().lower()
+                    if mac != '00:00:00:00:00:00':
+                        return mac
+    except Exception:
+        pass
+
+    # 3. Consulta alternativa via comando 'ip neigh'
+    try:
+        res = subprocess.run(['ip', 'neigh', 'show', ip], capture_output=True, text=True, timeout=2)
+        partes = res.stdout.strip().split()
+        if 'lladdr' in partes:
+            idx = partes.index('lladdr') + 1
+            if idx < len(partes):
+                mac = partes[idx].strip().lower()
+                if mac != '00:00:00:00:00:00':
+                    return mac
+    except Exception:
+        pass
+
+    return None
+
+def mac_cadastrado(mac):
+    """Verifica se o MAC informado existe na tabela 'computador' do banco de dados."""
+    if not mac:
+        return False
+    try:
         conn = get_db_connection()
         cur = conn.cursor(cursor_factory=DictCursor)
-        cur.execute("SELECT * FROM usuario WHERE login = %s", (login,))
-        user = cur.fetchone()
+        cur.execute("SELECT id_pc, nome FROM computador WHERE mac = %s::macaddr", (mac,))
+        pc = cur.fetchone()
         cur.close()
         conn.close()
+        return pc is not None
+    except Exception:
+        return False
 
-        if user:
-            session['user_id'] = user['id_usuario']
-            session['perfil'] = user['perfil']
-            if user['perfil'] == 'admin':
-                return redirect(url_for('admin_painel'))
-            return redirect(url_for('painel'))
-        flash("Login ou senha inválidos.")
-    return render_template('login.html')
+@app.route('/')
+def index():
+    """Portal de entrada: verifica o MAC antes de dar acesso ao login."""
+    if 'user_id' in session:
+        return redirect(url_for('admin_painel' if session.get('perfil') == 'admin' else 'painel'))
+
+    client_ip = request.remote_addr
+    mac = obter_mac_cliente(client_ip)
+
+    if mac_cadastrado(mac):
+        return redirect(url_for('login'))
+    return redirect(url_for('acesso_negado'))
+
+@app.route('/acesso-negado')
+def acesso_negado():
+    """Tela de bloqueio para computadores cujo MAC não está cadastrado."""
+    client_ip = request.remote_addr
+    mac = obter_mac_cliente(client_ip)
+    return render_template('acesso_negado.html', ip=client_ip, mac=mac)
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    client_ip = request.remote_addr
+    mac = obter_mac_cliente(client_ip)
+    cadastrado = mac_cadastrado(mac)
+    modo = request.args.get('modo') or request.form.get('modo')
+
+    if request.method == 'GET':
+        if 'user_id' in session:
+            return redirect(url_for('admin_painel' if session.get('perfil') == 'admin' else 'painel'))
+        # Se o MAC não for cadastrado e ele não veio pelo "sou admin", bloqueia
+        if not cadastrado and modo != 'admin':
+            return redirect(url_for('acesso_negado'))
+        return render_template('login.html', modo=modo)
+
+    # POST (tentativa de autenticação)
+    login_user = request.form['login']
+    senha = request.form['senha']
+    conn = get_db_connection()
+    cur = conn.cursor(cursor_factory=DictCursor)
+    cur.execute("SELECT * FROM usuario WHERE login = %s", (login_user,))
+    user = cur.fetchone()
+    cur.close()
+    conn.close()
+
+    if user and (check_password_hash(user['senha_hash'], senha) or user['senha_hash'] == senha):
+        # Se a máquina não é cadastrada, apenas administradores podem logar
+        if not cadastrado and user['perfil'] != 'admin':
+            flash("Acesso negado: Este computador não está cadastrado. Apenas administradores podem acessar a partir daqui.")
+            return render_template('login.html', modo=modo)
+
+        session['user_id'] = user['id_usuario']
+        session['perfil'] = user['perfil']
+        if user['perfil'] == 'admin':
+            return redirect(url_for('admin_painel'))
+        return redirect(url_for('painel'))
+
+    flash("Login ou senha inválidos.")
+    return render_template('login.html', modo=modo)
 
 @app.route('/logout')
 def logout():

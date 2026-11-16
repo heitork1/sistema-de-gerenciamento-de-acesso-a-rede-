@@ -1,16 +1,110 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8"><title>Login</title>
-    <style>body { font-family: Arial; display: flex; justify-content: center; padding-top: 100px; }</style>
+    <meta charset="UTF-8">
+    <title>Login - Controle de Acesso</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f6f9;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+        .login-card {
+            background: #fff;
+            border: 1px solid #ddd;
+            padding: 30px;
+            border-radius: 8px;
+            width: 320px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        }
+        h2 {
+            margin-top: 0;
+            color: #333;
+            font-size: 20px;
+            text-align: center;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 8px;
+        }
+        .badge-admin {
+            display: block;
+            text-align: center;
+            font-size: 11px;
+            color: #856404;
+            background: #fff3cd;
+            border: 1px solid #ffeeba;
+            padding: 3px 6px;
+            border-radius: 3px;
+            margin-bottom: 12px;
+            font-weight: bold;
+        }
+        .alerta {
+            color: #721c24;
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 13px;
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            font-size: 13px;
+            font-weight: bold;
+            color: #555;
+            margin-bottom: 4px;
+        }
+        input[type="text"], input[type="password"] {
+            width: 100%;
+            padding: 8px 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+            margin-bottom: 12px;
+            font-size: 14px;
+        }
+        button {
+            width: 100%;
+            padding: 9px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+    </style>
 </head>
 <body>
-    <div style="border: 1px solid #ccc; padding: 20px; border-radius: 5px;">
-        <h2>Acesso Administrativo</h2>
-        {% with messages = get_flashed_messages() %}{% if messages %}<p style="color:red">{{ messages[0] }}</p>{% endif %}{% endwith %}
+    <div class="login-card">
+        <h2>Controle de Acesso</h2>
+        {% if modo == 'admin' %}
+            <span class="badge-admin">🔑 Acesso de Administrador</span>
+        {% endif %}
+        
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <div class="alerta">{{ messages[0] }}</div>
+            {% endif %}
+        {% endwith %}
+
         <form method="POST">
-            Login: <input type="text" name="login" required><br><br>
-            Senha: <input type="password" name="senha" required><br><br>
+            {% if modo %}
+                <input type="hidden" name="modo" value="{{ modo }}">
+            {% endif %}
+            <label for="login">Login:</label>
+            <input type="text" id="login" name="login" required autofocus>
+
+            <label for="senha">Senha:</label>
+            <input type="password" id="senha" name="senha" required>
+
             <button type="submit">Entrar</button>
         </form>
     </div>
