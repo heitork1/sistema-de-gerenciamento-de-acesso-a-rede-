@@ -44,3 +44,6 @@ Acesse `http://localhost:5000` via navegador. O usuário criado pelo `seed.sql` 
    ```bash
    * * * * * cd /caminho/do/projeto && python3 cron_worker.py >> /var/log/cron_snmp.log 2>&1
    ```
+
+   https://docs.google.com/document/d/1dv82vO9ohveva5hoBajQraVbUtGw1RhiEHVJOidgoL8/edit?usp=sharing
+   https://docs.google.com/document/d/1ynLLMjny2tN3oJUgVZbzZNll7wvIogUc-Td7zplE1JU/edit?usp=sharing
