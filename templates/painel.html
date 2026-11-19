@@ -38,14 +38,18 @@
     {% for s in salas %}
     <div style="border:1px solid #ccc; padding:12px; margin-bottom:12px; border-radius:4px; background:#fff;">
         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+            
             <div>
                 <strong style="font-size:16px;">Sala {{ s.identificacao }}</strong>
-                <span style="margin-left:15px;">Ação Imediata:</span>
+                <!--
+                                <span style="margin-left:15px;">Ação Imediata:</span>
+
                 <form action="/acao_imediata" method="POST" style="display:inline; margin-left:5px;">
                     <input type="hidden" name="alvo_tipo" value="sala"><input type="hidden" name="alvo_id" value="{{ s.id_sala }}">
                     <button type="submit" name="acao" value="bloquear" style="background:#dc3545; color:white; border:none; padding:5px 10px; border-radius:3px; cursor:pointer;">Bloquear Sala</button>
                     <button type="submit" name="acao" value="desbloquear" style="background:#28a745; color:white; border:none; padding:5px 10px; border-radius:3px; cursor:pointer;">Desbloquear Sala</button>
                 </form>
+-->
             </div>
             
             <details style="display:inline-block;">
@@ -113,7 +117,7 @@
             <td>{{ c.sala_nome }}</td><td>{{ c.pc_nome }}</td><td>{{ c.ip }}</td><td>{{ c.mac }}</td><td>{{ c.porta_nome }}</td>
             <td>{% if c.acesso_internet %}<span class="on">LIBERADO</span>{% else %}<span class="off">BLOQUEADO</span>{% endif %}</td>
             <td>
-                <form action="/acao_imediata" method="POST" style="display:inline;">
+                <!--<form action="/acao_imediata" method="POST" style="display:inline;">
                     <input type="hidden" name="alvo_tipo" value="pc"><input type="hidden" name="alvo_id" value="{{ c.id_pc }}">
                     {% if c.acesso_internet %}
                         <button type="submit" name="acao" value="bloquear" style="background:#dc3545; color:white; border:none; padding:4px 8px; border-radius:3px; cursor:pointer;">Bloquear PC</button>
@@ -121,7 +125,7 @@
                         <button type="submit" name="acao" value="desbloquear" style="background:#28a745; color:white; border:none; padding:4px 8px; border-radius:3px; cursor:pointer;">Desbloquear PC</button>
                     {% endif %}
                 </form>
-
+            -->
                 <details style="margin-top:6px; text-align:left;">
                     <summary style="cursor:pointer; color:#007bff; font-size:12px;">⏰ Agendar este PC</summary>
                     <form action="/agendar" method="POST" style="margin-top:6px; padding:8px; background:#f9f9f9; border:1px solid #ddd; border-radius:3px; font-size:12px;">

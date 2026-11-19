@@ -81,7 +81,7 @@ def mac_cadastrado(mac):
     try:
         conn = get_db_connection()
         cur = conn.cursor(cursor_factory=DictCursor)
-        cur.execute("SELECT id_pc, nome FROM computador WHERE mac = %s::macaddr", (mac,))
+        cur.execute("SELECT c.id_pc, c.nome FROM computador c join porta p on c.id_porta = p.id_porta WHERE mac = %s::macaddr AND p.categoria <> 'aluno'", (mac,))
         pc = cur.fetchone()
         cur.close()
         conn.close()
