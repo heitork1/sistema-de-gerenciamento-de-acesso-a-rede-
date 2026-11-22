@@ -21,11 +21,10 @@ Além dos arquivos incluídos neste pacote (`app.py`, `cron_worker.py`, `Gerente
    psql -U postgres -d controle_acesso -f seed.sql
    ```
 
-### 2. Compilar o Gerente SNMP (Java)
+### 2. Compilar o Gerente SNMP (Java) e o tradudor da MIB
 Assegure-se de que o JDK está instalado e o arquivo `snmp4j-3.8.2.jar` está na pasta do projeto:
 ```bash
-javac -cp .:snmp4j-3.8.2.jar GerenteSNMP.java
-```
+javac -cp ".:snmp4j-3.8.2.jar:lib/mibble-parser-2.10.1.jar:lib/mibble-mibs-2.10.1.jar:lib/grammatica-1.6.jar" GerenteSNMP.java TraducaoMib.java```
 
 ### 3. Inicializar a Aplicação Web (Flask)
 Instale as dependências Python necessárias e inicie o servidor:

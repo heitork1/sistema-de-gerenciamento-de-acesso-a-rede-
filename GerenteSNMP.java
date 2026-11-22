@@ -8,15 +8,46 @@ import org.snmp4j.smi.*;
 import org.snmp4j.transport.DefaultUdpTransportMapping;
 
 public class GerenteSNMP {
+    // Objeto e modulo da MIB usados para ligar/desligar a porta (MIB-II / IF-MIB)
+    private static final String MODULO = "IF-MIB";
+    private static final String OBJETO = "ifAdminStatus";
+
     public static void main(String[] args) {
         if (args.length < 4) {
-            System.out.println("Uso: java -cp .:snmp4j-3.8.2.jar GerenteSNMP <IP> <Community> <OID> <1|2>");
+            System.out.println("Uso: java -cp <classpath> GerenteSNMP <IP> <Community> <ifIndex> <bloquear|desbloquear>");
             System.exit(1);
         }
         String ip = args[0];
         String community = args[1];
-        String oidStr = args[2];
-        int valor = Integer.parseInt(args[3]); // 1 = Up (Desbloqueado), 2 = Down (Bloqueado)
+        String acao = args[3];
+
+        int ifIndex;
+        String nomeValor; // nome do valor enumerado na MIB
+        int valor;        // numero correspondente, obtido da MIB
+        String oidStr;    // OID numerico, obtido da MIB
+
+        try {
+            ifIndex = Integer.parseInt(args[2]);
+            if (acao.equals("bloquear")) {
+                nomeValor = "down";
+            } else if (acao.equals("desbloquear")) {
+                nomeValor = "up";
+            } else {
+                System.out.println("ERRO: acao invalida (use bloquear ou desbloquear)");
+                System.exit(1);
+                return;
+            }
+
+            // Carrega a MIB de verdade e traduz nomes em numeros
+            TraducaoMib mib = new TraducaoMib(MODULO);
+            oidStr = mib.oid(OBJETO, ifIndex);
+            valor = mib.valorEnum(OBJETO, nomeValor);
+            System.out.println("MIB: " + MODULO + "::" + OBJETO + "." + ifIndex + " = "
+                    + nomeValor + "(" + valor + ") -> OID " + oidStr);
+        } catch (Exception e) {
+            System.out.println("ERRO: falha ao carregar/consultar a MIB: " + e.getMessage());
+            return;
+        }
 
         try {
             TransportMapping<UdpAddress> transport = new DefaultUdpTransportMapping();

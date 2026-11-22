@@ -8,6 +8,8 @@ from psycopg2.extras import DictCursor
 
 app = Flask(__name__)
 app.secret_key = 'chave_secreta_didatica'
+CLASSPATH_SNMP = ".:snmp4j-3.8.2.jar:lib/mibble-parser-2.10.1.jar:lib/mibble-mibs-2.10.1.jar:lib/grammatica-1.6.jar"
+
 
 DB_HOST, DB_NAME, DB_USER, DB_PASS = "localhost", "controle_acesso", "postgres", "Nielkrotieh1@"
 
@@ -15,11 +17,10 @@ def get_db_connection():
     return psycopg2.connect(host=DB_HOST, database=DB_NAME, user=DB_USER, password=DB_PASS)
 
 def executar_snmp(ip, community, if_index, acao):
-    oid = f"1.3.6.1.2.1.2.2.1.7.{if_index}"
-    comando = ["java", "-cp", ".:snmp4j-3.8.2.jar", "GerenteSNMP", ip, community, oid, str(acao)]
-    print("função foi chamada")
+    nome_acao = "bloquear" if acao == 2 else "desbloquear"
+    comando = ["java", "-cp", CLASSPATH_SNMP, "GerenteSNMP", ip, community, str(if_index), nome_acao]    
     try:
-        resultado = subprocess.run(comando, capture_output=True, text=True)
+        resultado = subprocess.run(comando, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)        
         print(f"resultado: {' '.join(resultado.stdout.splitlines())}")
         return ("SUCESSO" in resultado.stdout), resultado.stdout
     except Exception as e:
