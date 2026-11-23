@@ -8,20 +8,12 @@ import net.percederberg.mibble.MibValueSymbol;
 import net.percederberg.mibble.snmp.SnmpObjectType;
 import net.percederberg.mibble.type.IntegerType;
 import net.percederberg.mibble.value.ObjectIdentifierValue;
-
-/**
- * Traduz nomes da MIB (carregada de verdade com o Mibble) em OIDs numericos
- * e nomes de valores enumerados em numeros.
- * As MIBs padrao (IF-MIB, SNMPv2-SMI etc.) vem no mibble-mibs.jar, no classpath.
- */
 public class TraducaoMib {
     private final Mib mib;
-
     public TraducaoMib(String modulo) throws IOException, MibLoaderException {
         MibLoader loader = new MibLoader();
         this.mib = loader.load(modulo);
     }
-
     private MibValueSymbol simbolo(String nome) {
         MibSymbol s = mib.getSymbol(nome);
         if (!(s instanceof MibValueSymbol)) {
@@ -29,8 +21,6 @@ public class TraducaoMib {
         }
         return (MibValueSymbol) s;
     }
-
-    /** OID numerico do objeto de tabela com a instancia (ex.: ifAdminStatus + ifIndex). */
     public String oid(String objeto, int indice) {
         ObjectIdentifierValue oid = simbolo(objeto).getOid();
         if (oid == null) {
@@ -38,8 +28,6 @@ public class TraducaoMib {
         }
         return oid.toString() + "." + indice;
     }
-
-    /** Numero correspondente ao nome de um valor enumerado (ex.: down -> 2). */
     public int valorEnum(String objeto, String nomeValor) {
         MibType tipo = simbolo(objeto).getType();
         if (!(tipo instanceof SnmpObjectType)) {

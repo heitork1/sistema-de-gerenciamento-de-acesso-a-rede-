@@ -6,12 +6,9 @@ import org.snmp4j.event.ResponseEvent;
 import org.snmp4j.mp.SnmpConstants;
 import org.snmp4j.smi.*;
 import org.snmp4j.transport.DefaultUdpTransportMapping;
-
 public class GerenteSNMP {
-    // Objeto e modulo da MIB usados para ligar/desligar a porta (MIB-II / IF-MIB)
     private static final String MODULO = "IF-MIB";
     private static final String OBJETO = "ifAdminStatus";
-
     public static void main(String[] args) {
         if (args.length < 4) {
             System.out.println("Uso: java -cp <classpath> GerenteSNMP <IP> <Community> <ifIndex> <bloquear|desbloquear>");
@@ -20,12 +17,10 @@ public class GerenteSNMP {
         String ip = args[0];
         String community = args[1];
         String acao = args[3];
-
         int ifIndex;
-        String nomeValor; // nome do valor enumerado na MIB
-        int valor;        // numero correspondente, obtido da MIB
-        String oidStr;    // OID numerico, obtido da MIB
-
+        String nomeValor;
+        int valor;
+        String oidStr;
         try {
             ifIndex = Integer.parseInt(args[2]);
             if (acao.equals("bloquear")) {
@@ -37,8 +32,6 @@ public class GerenteSNMP {
                 System.exit(1);
                 return;
             }
-
-            // Carrega a MIB de verdade e traduz nomes em numeros
             TraducaoMib mib = new TraducaoMib(MODULO);
             oidStr = mib.oid(OBJETO, ifIndex);
             valor = mib.valorEnum(OBJETO, nomeValor);
@@ -48,23 +41,19 @@ public class GerenteSNMP {
             System.out.println("ERRO: falha ao carregar/consultar a MIB: " + e.getMessage());
             return;
         }
-
         try {
             TransportMapping<UdpAddress> transport = new DefaultUdpTransportMapping();
             transport.listen();
             Snmp snmp = new Snmp(transport);
-
             CommunityTarget<Address> target = new CommunityTarget<>();
             target.setCommunity(new OctetString(community));
             target.setAddress(GenericAddress.parse("udp:" + ip + "/161"));
             target.setRetries(2);
             target.setTimeout(1500);
             target.setVersion(SnmpConstants.version2c);
-
             PDU pdu = new PDU();
             pdu.add(new VariableBinding(new OID(oidStr), new Integer32(valor)));
             pdu.setType(PDU.SET);
-
             ResponseEvent<Address> event = snmp.set(pdu, target);
             if (event != null && event.getResponse() != null) {
                 if (event.getResponse().getErrorStatus() == PDU.noError) {

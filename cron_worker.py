@@ -11,9 +11,9 @@ def get_db_connection():
 
 def executar_snmp(ip, community, if_index, acao):
     nome_acao = "bloquear" if acao == 2 else "desbloquear"
-    comando = ["java", "-cp", CLASSPATH_SNMP, "GerenteSNMP", ip, community, str(if_index), nome_acao]    
+    comando = ["java", "-cp", CLASSPATH_SNMP, "GerenteSNMP", ip, community, str(if_index), nome_acao]
     try:
-        resultado = subprocess.run(comando, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)        
+        resultado = subprocess.run(comando, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
         return ("SUCESSO" in resultado.stdout), resultado.stdout
     except Exception as e:
         return False, str(e)
@@ -23,13 +23,12 @@ def processar_agendamentos():
     conn = get_db_connection()
     cur = conn.cursor(cursor_factory=DictCursor)
 
-    # 1. Aplicar bloqueios agendados
     cur.execute("SELECT * FROM agendamento WHERE status = 'agendado' AND inicio_em <= NOW()")
     para_bloquear = cur.fetchall()
     print(f"[cron_worker] Agendamentos para bloquear encontrados: {len(para_bloquear)}")
 
     for ag in para_bloquear:
-        cur.execute('''SELECT c.id_pc, c.nome as pc_nome, p.if_index, sw.ip, sw.snmp_community_rw, p.id_porta 
+        cur.execute('''SELECT c.id_pc, c.nome as pc_nome, p.if_index, sw.ip, sw.snmp_community_rw, p.id_porta
                        FROM agendamento_alvo aa JOIN computador c ON aa.id_pc = c.id_pc
                        JOIN porta p ON c.id_porta = p.id_porta JOIN switch sw ON p.id_switch = sw.id_switch
                        WHERE aa.id_agendamento = %s AND p.bloqueavel = TRUE''', (ag['id_agendamento'],))
@@ -50,13 +49,12 @@ def processar_agendamentos():
         cur.execute("UPDATE agendamento SET status = 'ativo' WHERE id_agendamento = %s", (ag['id_agendamento'],))
         print(f"[cron_worker] Agendamento #{ag['id_agendamento']} mudou para status 'ativo'")
 
-    # 2. Desfazer bloqueios finalizados
     cur.execute("SELECT * FROM agendamento WHERE status = 'ativo' AND fim_em <= NOW()")
     para_desbloquear = cur.fetchall()
     print(f"[cron_worker] Agendamentos expirados para desbloquear: {len(para_desbloquear)}")
 
     for ag in para_desbloquear:
-        cur.execute('''SELECT c.id_pc, c.nome as pc_nome, p.if_index, sw.ip, sw.snmp_community_rw, p.id_porta 
+        cur.execute('''SELECT c.id_pc, c.nome as pc_nome, p.if_index, sw.ip, sw.snmp_community_rw, p.id_porta
                        FROM agendamento_alvo aa JOIN computador c ON aa.id_pc = c.id_pc
                        JOIN porta p ON c.id_porta = p.id_porta JOIN switch sw ON p.id_switch = sw.id_switch
                        WHERE aa.id_agendamento = %s AND p.bloqueavel = TRUE''', (ag['id_agendamento'],))

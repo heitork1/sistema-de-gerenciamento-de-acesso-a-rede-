@@ -10,7 +10,6 @@ app = Flask(__name__)
 app.secret_key = 'chave_secreta_didatica'
 CLASSPATH_SNMP = ".:snmp4j-3.8.2.jar:lib/mibble-parser-2.10.1.jar:lib/mibble-mibs-2.10.1.jar:lib/grammatica-1.6.jar"
 
-
 DB_HOST, DB_NAME, DB_USER, DB_PASS = "localhost", "controle_acesso", "postgres", "Nielkrotieh1@"
 
 def get_db_connection():
@@ -27,13 +26,11 @@ def executar_snmp(ip, community, if_index, acao):
         return False, str(e)
 
 def obter_mac_cliente(ip):
-    """Detecta o endereço MAC do cliente a partir do IP da requisição."""
-    # Permite passar cabeçalho ou parâmetro de teste didático (ex: ?test_mac=00:11:22:33:44:55)
+
     mac_teste = request.headers.get('X-Client-MAC') or request.args.get('test_mac')
     if mac_teste:
         return mac_teste.strip().lower()
 
-    # 1. Se for localhost (navegador rodando na mesma máquina do servidor)
     if ip in ('127.0.0.1', '::1', 'localhost'):
         if os.path.exists('/sys/class/net'):
             for iface in sorted(os.listdir('/sys/class/net')):
@@ -48,7 +45,6 @@ def obter_mac_cliente(ip):
                         except Exception:
                             pass
 
-    # 2. Consulta a tabela ARP do kernel Linux (/proc/net/arp)
     try:
         with open('/proc/net/arp', 'r') as f:
             for linha in f.readlines()[1:]:
@@ -60,7 +56,6 @@ def obter_mac_cliente(ip):
     except Exception:
         pass
 
-    # 3. Consulta alternativa via comando 'ip neigh'
     try:
         res = subprocess.run(['ip', 'neigh', 'show', ip], capture_output=True, text=True, timeout=2)
         partes = res.stdout.strip().split()
@@ -76,7 +71,7 @@ def obter_mac_cliente(ip):
     return None
 
 def mac_cadastrado(mac):
-    """Verifica se o MAC informado existe na tabela 'computador' do banco de dados."""
+
     if not mac:
         return False
     try:
@@ -92,7 +87,7 @@ def mac_cadastrado(mac):
 
 @app.route('/')
 def index():
-    """Portal de entrada: verifica o MAC antes de dar acesso ao login."""
+
     if 'user_id' in session:
         return redirect(url_for('admin_painel' if session.get('perfil') == 'admin' else 'painel'))
 
@@ -105,7 +100,7 @@ def index():
 
 @app.route('/acesso-negado')
 def acesso_negado():
-    """Tela de bloqueio para computadores cujo MAC não está cadastrado."""
+
     client_ip = request.remote_addr
     mac = obter_mac_cliente(client_ip)
     return render_template('acesso_negado.html', ip=client_ip, mac=mac)
@@ -120,12 +115,11 @@ def login():
     if request.method == 'GET':
         if 'user_id' in session:
             return redirect(url_for('admin_painel' if session.get('perfil') == 'admin' else 'painel'))
-        # Se o MAC não for cadastrado e ele não veio pelo "sou admin", bloqueia
+
         if not cadastrado and modo != 'admin':
             return redirect(url_for('acesso_negado'))
         return render_template('login.html', modo=modo)
 
-    # POST (tentativa de autenticação)
     login_user = request.form['login']
     senha = request.form['senha']
     conn = get_db_connection()
@@ -136,7 +130,7 @@ def login():
     conn.close()
 
     if user and (check_password_hash(user['senha_hash'], senha) or user['senha_hash'] == senha):
-        # Se a máquina não é cadastrada, apenas administradores podem logar
+
         if not cadastrado and user['perfil'] != 'admin':
             flash("Acesso negado: Este computador não está cadastrado. Apenas administradores podem acessar a partir daqui.")
             return render_template('login.html', modo=modo)
@@ -161,7 +155,7 @@ def painel():
 
     conn = get_db_connection()
     cur = conn.cursor(cursor_factory=DictCursor)
-    
+
     cur.execute('''SELECT s.id_sala, s.identificacao FROM sala s
                    JOIN usuario_sala us ON s.id_sala = us.id_sala
                    WHERE us.id_usuario = %s''', (session['user_id'],))
@@ -193,7 +187,7 @@ def acao_imediata():
     print("função acao_imediata foi chamada")
     if 'user_id' not in session: return redirect(url_for('login'))
     print("função acao_imediata passou pela verificação de sessão")
-    acao = request.form['acao'] # 'bloquear' ou 'desbloquear'
+    acao = request.form['acao']
     alvo_tipo, alvo_id = request.form['alvo_tipo'], request.form['alvo_id']
     valor_snmp = 2 if acao == 'bloquear' else 1
     novo_status_internet = (acao == 'desbloquear')
@@ -206,7 +200,7 @@ def acao_imediata():
                FROM computador c JOIN porta p ON c.id_porta = p.id_porta
                JOIN switch sw ON p.id_switch = sw.id_switch
                WHERE {} AND p.bloqueavel = TRUE'''
-    
+
     filtro = "c.id_pc = %s" if alvo_tipo == 'pc' else "c.id_sala = %s"
     print(f"Executando query com filtro: {filtro} e alvo_id: {alvo_id}")
     cur.execute(query.format(filtro), (alvo_id,))
@@ -232,7 +226,7 @@ def acao_imediata():
                         (novo_status_internet, alvo['id_pc']))
         else:
             erros.append(msg.strip() if msg else "Erro desconhecido")
-    
+
     conn.commit()
     cur.close()
     conn.close()
@@ -288,7 +282,7 @@ def agendar():
             cur.execute('''INSERT INTO agendamento (id_usuario, id_sala, sala_inteira, fim_em, status)
                            VALUES (%s, %s, %s, %s, 'agendado') RETURNING id_agendamento''', 
                         (session['user_id'], id_sala, sala_inteira, fim_em))
-        
+
         id_agendamento = cur.fetchone()['id_agendamento']
 
         if sala_inteira:
@@ -328,7 +322,6 @@ def cancelar_agendamento(id_agendamento):
             flash("Agendamento não encontrado.", "danger")
             return redirect(url_for('painel'))
 
-        # Se já estava ativo (bloqueado), desbloqueia os computadores via SNMP
         if ag['status'] == 'ativo':
             cur.execute('''SELECT c.id_pc, p.if_index, sw.ip, sw.snmp_community_rw, p.id_porta 
                            FROM agendamento_alvo aa JOIN computador c ON aa.id_pc = c.id_pc
@@ -356,12 +349,8 @@ def cancelar_agendamento(id_agendamento):
 
     return redirect(url_for('painel'))
 
-# ==========================================
-#   ADMINISTRAÇÃO (perfil 'admin')
-# ==========================================
-
 def requer_admin(f):
-    """Decorator: só permite acesso se o usuário logado for admin."""
+
     @wraps(f)
     def wrapper(*args, **kwargs):
         if 'user_id' not in session or session.get('perfil') != 'admin':
@@ -370,7 +359,6 @@ def requer_admin(f):
         return f(*args, **kwargs)
     return wrapper
 
-# --- DASHBOARD ---
 @app.route('/admin')
 @requer_admin
 def admin_painel():
@@ -383,7 +371,6 @@ def admin_painel():
     cur.close(); conn.close()
     return render_template('admin.html', t_u=t_u, t_s=t_s, t_sw=t_sw, t_c=t_c)
 
-# --- USUÁRIOS ---
 @app.route('/admin/usuarios')
 @requer_admin
 def admin_usuarios():
@@ -432,7 +419,7 @@ def admin_usuario_edit(id):
             flash(f'Erro ao atualizar: {e}', 'danger')
         cur.close(); conn.close()
         return redirect(url_for('admin_usuarios'))
-    # GET: mostrar formulário de edição
+
     cur.execute('SELECT * FROM usuario ORDER BY id_usuario')
     usuarios = cur.fetchall()
     cur.execute('SELECT * FROM usuario WHERE id_usuario=%s', (id,))
@@ -455,7 +442,6 @@ def admin_usuario_del(id):
     cur.close(); conn.close()
     return redirect(url_for('admin_usuarios'))
 
-# --- SALAS ---
 @app.route('/admin/salas')
 @requer_admin
 def admin_salas():
@@ -519,7 +505,6 @@ def admin_sala_del(id):
     cur.close(); conn.close()
     return redirect(url_for('admin_salas'))
 
-# --- SWITCHES ---
 @app.route('/admin/switches')
 @requer_admin
 def admin_switches():
@@ -584,7 +569,6 @@ def admin_switch_del(id):
     cur.close(); conn.close()
     return redirect(url_for('admin_switches'))
 
-# --- PORTAS ---
 @app.route('/admin/portas')
 @requer_admin
 def admin_portas():
@@ -659,7 +643,6 @@ def admin_porta_del(id):
     cur.close(); conn.close()
     return redirect(url_for('admin_portas'))
 
-# --- COMPUTADORES ---
 @app.route('/admin/computadores')
 @requer_admin
 def admin_computadores():
@@ -726,7 +709,7 @@ def admin_computador_edit(id):
     salas = cur.fetchall()
     cur.execute('SELECT * FROM computador WHERE id_pc=%s', (id,))
     editando = cur.fetchone()
-    # Portas livres + a porta atual do computador sendo editado
+
     cur.execute('''SELECT p.id_porta, p.nome, sw.ip as switch_ip
                    FROM porta p JOIN switch sw ON p.id_switch = sw.id_switch
                    WHERE p.id_porta NOT IN (SELECT id_porta FROM computador WHERE id_pc != %s)
@@ -751,27 +734,26 @@ def admin_computador_del(id):
     cur.close(); conn.close()
     return redirect(url_for('admin_computadores'))
 
-# --- VÍNCULOS (Usuário↔Sala e Sala↔Switch) ---
 @app.route('/admin/vinculos')
 @requer_admin
 def admin_vinculos():
     conn = get_db_connection()
     cur = conn.cursor(cursor_factory=DictCursor)
-    # Vínculos usuário ↔ sala
+
     cur.execute('''SELECT us.id_usuario, us.id_sala, u.nome as usuario_nome, u.login, s.identificacao as sala_nome
                    FROM usuario_sala us
                    JOIN usuario u ON us.id_usuario = u.id_usuario
                    JOIN sala s ON us.id_sala = s.id_sala
                    ORDER BY u.nome, s.identificacao''')
     vinculos_us = cur.fetchall()
-    # Vínculos sala ↔ switch
+
     cur.execute('''SELECT ss.id_sala, ss.id_switch, s.identificacao as sala_nome, sw.ip, sw.descricao as switch_desc
                    FROM sala_switch ss
                    JOIN sala s ON ss.id_sala = s.id_sala
                    JOIN switch sw ON ss.id_switch = sw.id_switch
                    ORDER BY s.identificacao''')
     vinculos_ss = cur.fetchall()
-    # Listas para os dropdowns
+
     cur.execute('SELECT id_usuario, nome, login FROM usuario ORDER BY nome')
     usuarios = cur.fetchall()
     cur.execute('SELECT id_sala, identificacao FROM sala ORDER BY identificacao')
@@ -846,7 +828,6 @@ def admin_vinc_ss_del():
     cur.close(); conn.close()
     return redirect(url_for('admin_vinculos'))
 
-# --- LOGS SNMP ---
 @app.route('/admin/logs')
 @requer_admin
 def admin_logs():
