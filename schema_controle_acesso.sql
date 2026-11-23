@@ -7,11 +7,11 @@ CREATE TABLE sala (
   id_sala SERIAL PRIMARY KEY,
   identificacao TEXT NOT NULL UNIQUE
 );
+
 CREATE TABLE switch (
   id_switch SERIAL PRIMARY KEY,
   ip INET NOT NULL UNIQUE,
   descricao TEXT,
-  snmp_porta INT NOT NULL DEFAULT 161,
   snmp_community_rw TEXT NOT NULL
 );
 
@@ -62,19 +62,19 @@ CREATE TABLE agendamento (
   fim_em    TIMESTAMPTZ NOT NULL,
   status status_agend NOT NULL DEFAULT 'agendado',
   criado_em TIMESTAMPTZ NOT NULL DEFAULT now(),
-  cron_id TEXT,
   CHECK (fim_em > inicio_em)
 );
 
 CREATE TABLE agendamento_alvo (
   id_agendamento INT REFERENCES agendamento(id_agendamento) ON DELETE CASCADE,
-  id_pc INT REFERENCES computador(id_pc),
-  PRIMARY KEY (id_agendamento, id_pc)
+  id_pc INT REFERENCES computador(id_pc) ON DELETE CASCADE,
+  PRIMARY KEY (id_agendamento, id_pc) 
 );
+
 CREATE TABLE log_snmp (
   id_log BIGSERIAL PRIMARY KEY,
   id_agendamento INT REFERENCES agendamento(id_agendamento) ON DELETE SET NULL,
-  id_porta INT NOT NULL REFERENCES porta(id_porta),
+  id_porta INT NOT NULL REFERENCES porta(id_porta) ON DELETE CASCADE,
   acao acao_tipo NOT NULL,
   oid TEXT NOT NULL,
   valor SMALLINT NOT NULL,

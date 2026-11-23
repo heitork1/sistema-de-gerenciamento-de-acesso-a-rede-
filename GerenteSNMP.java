@@ -45,12 +45,14 @@ public class GerenteSNMP {
             TransportMapping<UdpAddress> transport = new DefaultUdpTransportMapping();
             transport.listen();
             Snmp snmp = new Snmp(transport);
+
             CommunityTarget<Address> target = new CommunityTarget<>();
             target.setCommunity(new OctetString(community));
             target.setAddress(GenericAddress.parse("udp:" + ip + "/161"));
             target.setRetries(2);
             target.setTimeout(1500);
             target.setVersion(SnmpConstants.version2c);
+            
             PDU pdu = new PDU();
             pdu.add(new VariableBinding(new OID(oidStr), new Integer32(valor)));
             pdu.setType(PDU.SET);
